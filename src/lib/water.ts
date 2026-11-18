@@ -72,7 +72,7 @@ export function exceeds(p: Param, v: number): boolean {
   return p.higherIsBetter ? v < p.standard : v > p.standard;
 }
 
-export const latest = (s: Station) => s.history[s.history.length - 1].reading;
+export const latest = (s: Station) => s.history[s.history.length - 1]!.reading;
 
 const MONTHS = ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"];
 function series(base: Reading, drift: Partial<Reading>): Station["history"] {

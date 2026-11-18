@@ -40,7 +40,7 @@ function GradeBadge({ grade }: { grade: Grade }) {
 }
 
 function Index() {
-  const [selectedId, setSelectedId] = useState(STATIONS[0].id);
+  const [selectedId, setSelectedId] = useState(STATIONS[0]!.id);
   const [colorBy, setColorBy] = useState<"wqi" | ParamKey>("wqi");
   const [trendParam, setTrendParam] = useState<ParamKey>("bod");
   const station = STATIONS.find((s) => s.id === selectedId)!;
