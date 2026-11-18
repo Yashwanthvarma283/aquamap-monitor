@@ -28,3 +28,6 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- Keep water-quality calculations in the shared model and presentation in focused dashboard components so interface changes do not alter the scientific method.
+- Import the Leaflet map lazily behind ClientOnly because its browser dependencies cannot run during server rendering.

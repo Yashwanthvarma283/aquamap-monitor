@@ -1,250 +1,86 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ClientOnly } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine, CartesianGrid } from "recharts";
-import { Droplets, MapPin, AlertTriangle, Activity, FlaskConical } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Droplets, MapPin, AlertTriangle, Activity, FlaskConical, Search, ArrowUpRight, Waves, ChartNoAxesCombined, BookOpen, ChevronDown, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  STATIONS, PARAMS, computeWQI, gradeWQI, GRADE_VAR, latest, exceeds, type ParamKey, type Reading, type Grade,
-} from "@/lib/water";
+import { GradeBadge, GRADE_CLASS } from "@/components/GradeBadge";
+import { SampleCalculator } from "@/components/SampleCalculator";
+import { STATIONS, PARAMS, computeWQI, gradeWQI, latest, exceeds, type ParamKey, type Grade } from "@/lib/water";
 
 const WaterMap = lazy(() => import("@/components/WaterMap"));
-
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "AquaMap – GIS Water Quality Mapping & Monitoring" },
-      { name: "description", content: "Map sampling stations, compute the Water Quality Index and track pH, DO, BOD, TDS, turbidity and nitrate trends." },
-      { property: "og:title", content: "AquaMap – GIS Water Quality Monitoring" },
-      { property: "og:description", content: "Interactive GIS dashboard for water quality mapping and WQI monitoring." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: () => ({ meta: [
+    { title: "AquaMap | Kolkata Water Quality Observatory" },
+    { name: "description", content: "Explore Kolkata sampling stations, compare water quality readings, inspect monthly trends and calculate the Weighted Arithmetic Water Quality Index." },
+    { property: "og:title", content: "AquaMap | Kolkata Water Quality Observatory" },
+    { property: "og:description", content: "An interactive water quality observatory for Kolkata's rivers, lakes, wetlands and groundwater." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
   component: Index,
 });
-
 const GRADES: Grade[] = ["Excellent", "Good", "Poor", "Very Poor", "Unsuitable"];
 
-function GradeBadge({ grade }: { grade: Grade }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold">
-      <span className="h-2.5 w-2.5 rounded-full" style={{ background: GRADE_VAR[grade] }} />
-      {grade}
-    </span>
-  );
-}
-
 function Index() {
-  const [selectedId, setSelectedId] = useState(STATIONS[0]!.id);
+  const [selectedId, setSelectedId] = useState("S1");
   const [colorBy, setColorBy] = useState<"wqi" | ParamKey>("wqi");
   const [trendParam, setTrendParam] = useState<ParamKey>("bod");
-  const station = STATIONS.find((s) => s.id === selectedId)!;
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState("all");
+  const [methodOpen, setMethodOpen] = useState(false);
+  const station = STATIONS.find((s) => s.id === selectedId);
+  const trendP = PARAMS.find((p) => p.key === trendParam);
+  const stats = useMemo(() => {
+    const scores = STATIONS.map((s) => computeWQI(latest(s)));
+    return { avg: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10, alerts: STATIONS.reduce((n, s) => n + PARAMS.filter((p) => exceeds(p, latest(s)[p.key])).length, 0), unsafe: scores.filter((w) => w > 75).length };
+  }, []);
+  if (!station || !trendP) return null;
   const r = latest(station);
   const wqi = computeWQI(r);
-
-  const stats = useMemo(() => {
-    const w = STATIONS.map((s) => computeWQI(latest(s)));
-    const alerts = STATIONS.reduce((n, s) => n + PARAMS.filter((p) => exceeds(p, latest(s)[p.key])).length, 0);
-    return { avg: Math.round((w.reduce((a, b) => a + b, 0) / w.length) * 10) / 10, alerts, unsafe: w.filter((x) => x > 75).length };
-  }, []);
-
-  const trendP = PARAMS.find((p) => p.key === trendParam)!;
-  const trend = station.history.map((h) => ({ month: h.month, value: h.reading[trendParam], wqi: computeWQI(h.reading) }));
-
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-hero text-primary-foreground">
-        <div className="mx-auto max-w-7xl px-4 py-10 md:py-14">
-          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest opacity-80">
-            <Droplets className="h-4 w-4" /> AquaMap
-          </div>
-          <h1 className="mt-3 max-w-3xl text-3xl font-bold md:text-5xl">GIS-Based Water Quality Mapping &amp; Monitoring</h1>
-          <p className="mt-3 max-w-2xl text-sm opacity-85 md:text-base">
-            Spatial view of sampling stations across Kolkata's water bodies, scored with the Weighted Arithmetic Water Quality Index.
-          </p>
-          <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-            {[
-              { icon: MapPin, label: "Stations", value: STATIONS.length },
-              { icon: Activity, label: "Average WQI", value: stats.avg },
-              { icon: AlertTriangle, label: "Limit breaches", value: stats.alerts },
-              { icon: FlaskConical, label: "Unsafe sites", value: stats.unsafe },
-            ].map((k) => (
-              <div key={k.label} className="rounded-xl bg-primary-foreground/10 p-4 backdrop-blur">
-                <k.icon className="h-4 w-4 opacity-80" />
-                <div className="mt-2 font-display text-2xl font-bold">{k.value}</div>
-                <div className="text-xs opacity-80">{k.label}</div>
-              </div>
-            ))}
-          </div>
+  const grade = gradeWQI(wqi);
+  const breaches = PARAMS.filter((p) => exceeds(p, r[p.key])).length;
+  const trend = station.history.map((h) => ({ month: h.month, value: h.reading[trendParam] }));
+  const filtered = STATIONS.filter((s) => (type === "all" || s.type === type) && `${s.name} ${s.id}`.toLowerCase().includes(search.toLowerCase()));
+  const selectStation = (id: string, scroll = false) => {
+    setSelectedId(id);
+    if (scroll) document.getElementById("observatory")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+  };
+  return <div className="min-h-screen bg-background">
+    <header className="app-header">
+      <div className="page-container flex flex-wrap items-center justify-between gap-4 py-4">
+        <a href="#" className="brand" aria-label="AquaMap home"><span className="brand-symbol"><Droplets /></span><span>AquaMap<span className="brand-subtitle">WATER QUALITY OBSERVATORY</span></span></a>
+        <nav className="flex items-center gap-1" aria-label="Dashboard navigation"><Button asChild variant="ghost" size="sm"><a href="#observatory"><MapPin />Overview</a></Button><Button asChild variant="ghost" size="sm"><a href="#stations"><Waves />Stations</a></Button><Button asChild variant="ghost" size="sm"><a href="#analysis"><ChartNoAxesCombined />Analysis</a></Button></nav>
+      </div>
+    </header>
+    <main className="page-container pb-10">
+      <div className="page-intro"><div><div className="eyebrow"><span className="status-dot" />KOLKATA · WEST BENGAL</div><h1>Water quality, in perspective.</h1><p className="mt-2 text-sm text-muted-foreground">GIS-based mapping &amp; monitoring of Kolkata’s water bodies</p></div><div className="sample-stamp"><FlaskConical className="size-4" /><span>Capstone study<span className="block text-xs text-muted-foreground">June – November · Sample dataset</span></span></div></div>
+      <div className="stats-strip">
+        {[{ icon: MapPin, label: "Sampling stations", value: STATIONS.length, note: "Across 4 water body types", tone: "primary" }, { icon: Activity, label: "Average WQI", value: stats.avg, note: "Weighted arithmetic index", tone: "primary" }, { icon: AlertTriangle, label: "Parameter breaches", value: stats.alerts, note: "Across all latest samples", tone: "warning" }, { icon: FlaskConical, label: "Sites with WQI > 75", value: stats.unsafe, note: "Very poor or unsuitable", tone: "danger" }].map((item) => <div className="stat-item" key={item.label}><div className="flex items-center justify-between gap-3"><span className="text-xs font-medium text-muted-foreground">{item.label}</span><item.icon className={`stat-icon ${item.tone}`} /></div><div className="stat-value">{item.value}</div><div className="text-xs text-muted-foreground">{item.note}</div></div>)}
+      </div>
+      <div className="sample-notice"><FlaskConical className="size-4 shrink-0" /><span>Illustrative sample readings — not field measurements or a drinking-water safety assessment.</span></div>
+      <section id="observatory" className="observatory-section">
+        <div className="map-panel">
+          <div className="section-heading"><div><h2><MapPin />Station map</h2><p className="section-subtitle">Kolkata &amp; surrounding water bodies</p></div><Select value={colorBy} onValueChange={(v) => setColorBy(v as typeof colorBy)}><SelectTrigger aria-label="Map colour parameter" className="w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="wqi">Water quality index</SelectItem>{PARAMS.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent></Select></div>
+          <div className="map-canvas"><ClientOnly fallback={<div className="map-loading"><Waves className="size-8 animate-pulse" /><span>Loading station map…</span></div>}><Suspense fallback={<div className="map-loading"><Waves className="size-8 animate-pulse" /><span>Loading station map…</span></div>}><WaterMap stations={STATIONS} selectedId={selectedId} colorBy={colorBy} onSelect={setSelectedId} /></Suspense></ClientOnly></div>
+          <div className="map-legend">{colorBy === "wqi" ? GRADES.map((g) => <span key={g} className={`legend-item ${GRADE_CLASS[g]}`}><span className="quality-dot" />{g}</span>) : <><span className="legend-item quality-excellent"><span className="quality-dot" />Within limit</span><span className="legend-item quality-unsuitable"><span className="quality-dot" />Exceeds limit</span></>}<span className="ml-auto text-xs text-muted-foreground">{STATIONS.length} stations</span></div>
         </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8">
-        <p className="rounded-lg border border-dashed bg-muted px-4 py-2 text-xs text-muted-foreground">
-          Note: station readings are illustrative sample data for demonstration — replace with your field measurements.
-        </p>
-
-        <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
-          <Card className="overflow-hidden shadow-soft">
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
-              <CardTitle>Station map</CardTitle>
-              <Select value={colorBy} onValueChange={(v) => setColorBy(v as typeof colorBy)}>
-                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="wqi">Colour by WQI</SelectItem>
-                  {PARAMS.map((p) => <SelectItem key={p.key} value={p.key}>Colour by {p.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="h-[420px] md:h-[520px]">
-                <ClientOnly fallback={<div className="h-full animate-pulse bg-muted" />}>
-                  <Suspense fallback={<div className="h-full animate-pulse bg-muted" />}>
-                    <WaterMap stations={STATIONS} selectedId={selectedId} colorBy={colorBy} onSelect={setSelectedId} />
-                  </Suspense>
-                </ClientOnly>
-              </div>
-              <div className="flex flex-wrap gap-2 border-t p-3">
-                {colorBy === "wqi"
-                  ? GRADES.map((g) => <GradeBadge key={g} grade={g} />)
-                  : (<><GradeBadge grade="Excellent" /><span className="text-xs self-center">within limit</span><GradeBadge grade="Unsuitable" /><span className="text-xs self-center">exceeds limit</span></>)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-soft">
-            <CardHeader className="space-y-2">
-              <Select value={selectedId} onValueChange={setSelectedId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {STATIONS.map((s) => <SelectItem key={s.id} value={s.id}>{s.id} · {s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <div className="flex items-end justify-between pt-2">
-                <div>
-                  <Badge variant="secondary">{station.type}</Badge>
-                  <div className="mt-1 text-xs text-muted-foreground">{station.lat.toFixed(4)}°N, {station.lng.toFixed(4)}°E</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-display text-4xl font-bold" style={{ color: GRADE_VAR[gradeWQI(wqi)] }}>{wqi}</div>
-                  <GradeBadge grade={gradeWQI(wqi)} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {PARAMS.map((p) => {
-                const v = r[p.key];
-                const bad = exceeds(p, v);
-                const pct = Math.min(100, (v / (p.standard * (p.higherIsBetter ? 2 : 1.5))) * 100);
-                return (
-                  <div key={p.key}>
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium">{p.label}</span>
-                      <span className={bad ? "font-semibold text-destructive" : "text-muted-foreground"}>
-                        {v} {p.unit} <span className="text-xs">/ {p.key === "ph" ? "6.5–8.5" : `${p.higherIsBetter ? "≥" : "≤"}${p.standard}`}</span>
-                      </span>
-                    </div>
-                    <div className="mt-1 h-2 rounded-full bg-muted">
-                      <div className="h-2 rounded-full" style={{ width: `${pct}%`, background: bad ? "var(--wq-unsuitable)" : "var(--wq-excellent)" }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-2">
-          <Card className="shadow-soft">
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
-              <CardTitle>Monthly trend · {station.id}</CardTitle>
-              <Select value={trendParam} onValueChange={(v) => setTrendParam(v as ParamKey)}>
-                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>{PARAMS.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </CardHeader>
-            <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trend} margin={{ left: -16, right: 8 }}>
-                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="month" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <ReferenceLine y={trendP.standard} stroke="var(--destructive)" strokeDasharray="4 4" label={{ value: "Limit", fontSize: 11, fill: "var(--destructive)" }} />
-                  <Line type="monotone" dataKey="value" name={trendP.label} stroke="var(--chart-1)" strokeWidth={3} dot />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-          <Calculator />
-        </section>
-
-        <Card className="shadow-soft">
-          <CardHeader><CardTitle>All stations</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-muted-foreground">
-                <tr><th className="py-2 pr-3">Station</th>{PARAMS.map((p) => <th key={p.key} className="px-2">{p.label}</th>)}<th className="px-2">WQI</th></tr>
-              </thead>
-              <tbody>
-                {STATIONS.map((s) => {
-                  const lr = latest(s); const w = computeWQI(lr);
-                  return (
-                    <tr key={s.id} onClick={() => setSelectedId(s.id)} className="cursor-pointer border-t hover:bg-muted">
-                      <td className="py-2 pr-3 font-medium whitespace-nowrap">{s.name}</td>
-                      {PARAMS.map((p) => <td key={p.key} className={`px-2 ${exceeds(p, lr[p.key]) ? "font-semibold text-destructive" : ""}`}>{lr[p.key]}</td>)}
-                      <td className="px-2 whitespace-nowrap"><span className="font-bold">{w}</span> <GradeBadge grade={gradeWQI(w)} /></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-soft">
-          <CardHeader><CardTitle>Methodology</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 text-sm text-muted-foreground md:grid-cols-3">
-            <div><h3 className="mb-1 font-semibold text-foreground">1 · Sub-index</h3>Qᵢ = 100 × (Vᵢ − V₀) / (Sᵢ − V₀), where Vᵢ is measured value, Sᵢ the BIS/WHO limit and V₀ the ideal (7 for pH, 14.6 mg/L for DO, 0 otherwise).</div>
-            <div><h3 className="mb-1 font-semibold text-foreground">2 · Weighting</h3>Unit weight Wᵢ = 1 / Sᵢ, so stricter parameters carry more influence. WQI = Σ(WᵢQᵢ) / ΣWᵢ.</div>
-            <div><h3 className="mb-1 font-semibold text-foreground">3 · Classification</h3>0–25 Excellent · 26–50 Good · 51–75 Poor · 76–100 Very Poor · &gt;100 Unsuitable for drinking.</div>
-          </CardContent>
-        </Card>
-      </main>
-      <footer className="border-t py-6 text-center text-xs text-muted-foreground">AquaMap · Biology Capstone Project · Map data © OpenStreetMap contributors</footer>
-    </div>
-  );
-}
-
-function Calculator() {
-  const [v, setV] = useState<Reading>({ ph: 7.4, do: 6, bod: 2.5, tds: 300, turbidity: 4, nitrate: 10 });
-  const w = computeWQI(v);
-  return (
-    <Card className="shadow-soft">
-      <CardHeader><CardTitle>WQI calculator — enter a new sample</CardTitle></CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {PARAMS.map((p) => (
-            <div key={p.key} className="space-y-1">
-              <Label htmlFor={p.key} className="text-xs">{p.label} {p.unit && `(${p.unit})`}</Label>
-              <Input id={p.key} type="number" step="0.1" value={v[p.key]}
-                onChange={(e) => setV({ ...v, [p.key]: Number(e.target.value) })} />
-            </div>
-          ))}
-        </div>
-        <div className="mt-5 flex items-center justify-between rounded-xl bg-muted p-4">
-          <span className="text-sm font-medium">Computed WQI</span>
-          <div className="flex items-center gap-3">
-            <span className="font-display text-3xl font-bold" style={{ color: GRADE_VAR[gradeWQI(w)] }}>{w}</span>
-            <GradeBadge grade={gradeWQI(w)} />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        <aside className="station-detail" aria-label="Selected station details">
+          <div className="flex items-center justify-between gap-2"><span className="eyebrow">STATION DETAILS</span><span className="station-id">{station.id}</span></div>
+          <Select value={selectedId} onValueChange={setSelectedId}><SelectTrigger aria-label="Selected station" className="mt-4 w-full"><SelectValue /></SelectTrigger><SelectContent>{STATIONS.map((s) => <SelectItem key={s.id} value={s.id}>{s.id} · {s.name}</SelectItem>)}</SelectContent></Select>
+          <h2 className="mt-4 text-lg font-semibold leading-snug">{station.name}</h2><div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><span className="water-type">{station.type}</span><span>{station.lat.toFixed(4)}°N, {station.lng.toFixed(4)}°E</span></div>
+          <div className="station-score"><div><span className="text-xs text-muted-foreground">Water quality index</span><div className={`quality-value score-number ${GRADE_CLASS[grade]}`}>{wqi}</div></div><div className="text-right"><GradeBadge grade={grade} /><div className="mt-2 text-xs text-muted-foreground">Latest sample · November</div></div></div>
+          <div className="mb-4 flex items-center justify-between"><h3 className="text-xs font-semibold uppercase">Parameters</h3><span className={breaches ? "text-xs text-destructive" : "text-xs text-primary"}>{breaches} limit {breaches === 1 ? "breach" : "breaches"}</span></div>
+          <div className="space-y-4">{PARAMS.map((p) => { const value = r[p.key]; const bad = exceeds(p, value); const pct = Math.min(100, value / (p.standard * (p.higherIsBetter ? 2 : 1.5)) * 100); return <div key={p.key}><div className="flex items-center justify-between gap-2 text-xs"><span className="font-medium">{p.label}</span><span className={`flex items-center gap-1 ${bad ? "font-semibold text-destructive" : "text-foreground"}`}>{value}<span className="font-normal text-muted-foreground">{p.unit}</span>{bad ? <AlertTriangle className="size-3" /> : <Check className="size-3 text-primary" />}</span></div><div className="parameter-track"><div className={bad ? "parameter-fill breached" : "parameter-fill"} style={{ width: `${pct}%` }} /></div><div className="mt-1 text-[10px] text-muted-foreground">Limit: {p.key === "ph" ? "6.5–8.5" : `${p.higherIsBetter ? "≥" : "≤"} ${p.standard} ${p.unit}`}</div></div>; })}</div>
+        </aside>
+      </section>
+      <section id="analysis" className="analysis-grid">
+        <div className="analysis-panel"><div className="section-heading"><div><h2><ChartNoAxesCombined />Monthly trend</h2><p className="section-subtitle">{station.name}</p></div><Select value={trendParam} onValueChange={(v) => setTrendParam(v as ParamKey)}><SelectTrigger aria-label="Trend parameter" className="w-36"><SelectValue /></SelectTrigger><SelectContent>{PARAMS.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent></Select></div><div className="mb-2 flex flex-wrap gap-4 text-xs text-muted-foreground"><span className="flex items-center gap-2"><span className="chart-key" />{trendP.label} {trendP.unit && `(${trendP.unit})`}</span><span className="flex items-center gap-2"><span className="limit-key" />{trendP.key === "ph" ? "Permissible range: 6.5–8.5" : `Limit: ${trendP.higherIsBetter ? "≥" : "≤"} ${trendP.standard} ${trendP.unit}`}</span></div><div className="h-56"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend} margin={{ top: 20, left: -18, right: 18, bottom: 0 }}><CartesianGrid stroke="var(--border)" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickMargin={12} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} domain={trendParam === "ph" ? [6, 9] : [0, (max: number) => Math.ceil(Math.max(max, trendP.standard) * 1.15)]} /><Tooltip contentStyle={{ background: "var(--popover)", color: "var(--popover-foreground)", border: "1px solid var(--border)", borderRadius: 6 }} formatter={(value: number) => [`${value} ${trendP.unit}`, trendP.label]} /><ReferenceLine y={trendP.standard} stroke="var(--destructive)" strokeDasharray="4 4" />{trendParam === "ph" && <ReferenceLine y={6.5} stroke="var(--destructive)" strokeDasharray="4 4" />}<Line type="monotone" dataKey="value" name={trendP.label} stroke="var(--chart-1)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--card)", strokeWidth: 2 }} activeDot={{ r: 6 }} isAnimationActive={false} /></LineChart></ResponsiveContainer></div></div>
+        <SampleCalculator />
+      </section>
+      <section id="stations" className="station-table-section"><div className="section-heading"><div><h2><Waves />All stations<span className="count-label">{filtered.length}</span></h2><p className="section-subtitle">Latest sample readings · November</p></div><div className="flex w-full flex-wrap gap-2 sm:w-auto"><div className="search-field"><Search className="size-4" /><Input aria-label="Search stations" placeholder="Search stations…" value={search} onChange={(e) => setSearch(e.target.value)} />{search && <Button aria-label="Clear station search" title="Clear search" size="icon" variant="ghost" className="absolute right-1 top-0 h-9 w-7" onClick={() => setSearch("")}><X /></Button>}</div><Select value={type} onValueChange={setType}><SelectTrigger aria-label="Water body type" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All water bodies</SelectItem>{["River", "Lake", "Pond", "Groundwater"].map((t) => <SelectItem value={t} key={t}>{t}</SelectItem>)}</SelectContent></Select></div></div><div className="overflow-x-auto"><table className="station-table"><thead><tr><th>Station / water body</th>{PARAMS.map((p) => <th key={p.key}>{p.label}<span className="block font-normal text-muted-foreground">{p.unit || "—"}</span></th>)}<th>WQI / classification</th><th><span className="sr-only">View station</span></th></tr></thead><tbody>{filtered.map((s) => { const reading = latest(s); const score = computeWQI(reading); return <tr key={s.id} className={s.id === selectedId ? "selected-row" : ""}><td><Button variant="link" className="h-auto max-w-72 justify-start whitespace-normal p-0 text-left font-semibold text-foreground" onClick={() => selectStation(s.id, true)}>{s.name}</Button><div className="mt-1 text-xs text-muted-foreground">{s.id} · {s.type}</div></td>{PARAMS.map((p) => <td key={p.key} className={exceeds(p, reading[p.key]) ? "font-semibold text-destructive" : ""}>{reading[p.key]}</td>)}<td><div className="flex items-center gap-3 whitespace-nowrap"><strong>{score}</strong><GradeBadge grade={gradeWQI(score)} /></div></td><td><Button variant="ghost" size="icon" aria-label={`View ${s.name}`} title={`View ${s.name}`} onClick={() => selectStation(s.id, true)}><ArrowUpRight /></Button></td></tr>; })}</tbody></table>{filtered.length === 0 && <div className="empty-state"><Search className="mx-auto mb-3 size-6" /><p className="font-semibold">No matching stations</p><Button variant="link" onClick={() => { setSearch(""); setType("all"); }}>Clear filters</Button></div>}</div></section>
+      <section className="methodology"><Button variant="ghost" className="flex h-auto w-full justify-between whitespace-normal px-0 py-5 text-left" aria-expanded={methodOpen} aria-controls="method-details" onClick={() => setMethodOpen(!methodOpen)}><span className="flex items-center gap-2 font-semibold"><BookOpen className="size-4" />Methodology &amp; classification</span><ChevronDown className={methodOpen ? "rotate-180" : ""} /></Button>{methodOpen && <div id="method-details" className="grid gap-6 pb-6 text-sm leading-relaxed text-muted-foreground md:grid-cols-3"><div><h3 className="mb-2 font-semibold text-foreground">01 · Sub-index</h3>Qᵢ = 100 × |(Vᵢ − V₀) / (Sᵢ − V₀)|. Vᵢ is the measurement; Sᵢ the parameter limit; V₀ the ideal (7 for pH, 14.6 mg/L for DO, 0 otherwise).</div><div><h3 className="mb-2 font-semibold text-foreground">02 · Weighting</h3>Unit weight Wᵢ = 1 / Sᵢ. WQI = Σ(WᵢQᵢ) / ΣWᵢ. Parameters with stricter limits carry greater influence.</div><div><h3 className="mb-2 font-semibold text-foreground">03 · Classification</h3>≤25 Excellent · &gt;25–50 Good · &gt;50–75 Poor · &gt;75–100 Very Poor · &gt;100 Unsuitable. This index is not a substitute for a full safety assessment.</div></div>}</section>
+    </main><footer className="app-footer"><div className="page-container flex flex-wrap items-center justify-between gap-3 py-5"><span className="flex items-center gap-2 font-semibold"><Droplets className="size-4" />AquaMap<span className="font-normal">· Biology Capstone Project</span></span><span>Map data © OpenStreetMap contributors</span></div></footer>
+  </div>;
 }

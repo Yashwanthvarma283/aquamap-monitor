@@ -1,4 +1,7 @@
-import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from "react-leaflet";
+import { LocateFixed } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { type Station, type ParamKey, PARAMS, computeWQI, gradeWQI, GRADE_VAR, latest, exceeds } from "@/lib/water";
 
 interface Props {
@@ -15,7 +18,8 @@ function resolve(v: string) {
 
 export default function WaterMap({ stations, selectedId, colorBy, onSelect }: Props) {
   return (
-    <MapContainer bounds={stations.map((s) => [s.lat, s.lng] as [number, number])} boundsOptions={{ padding: [24, 24] }} className="h-full w-full" scrollWheelZoom>
+    <MapContainer bounds={stations.map((s) => [s.lat, s.lng] as [number, number])} boundsOptions={{ padding: [32, 32] }} className="h-full w-full" scrollWheelZoom={false}>
+      <MapControls stations={stations} selectedId={selectedId} />
       <TileLayer
         attribution="© OpenStreetMap contributors"
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -29,7 +33,8 @@ export default function WaterMap({ stations, selectedId, colorBy, onSelect }: Pr
           color = resolve(GRADE_VAR[gradeWQI(wqi)]);
           label = `WQI ${wqi} · ${gradeWQI(wqi)}`;
         } else {
-          const p = PARAMS.find((x) => x.key === colorBy)!;
+          const p = PARAMS.find((x) => x.key === colorBy);
+          if (!p) return null;
           const bad = exceeds(p, r[colorBy]);
           color = resolve(bad ? "var(--wq-unsuitable)" : "var(--wq-excellent)");
           label = `${p.label}: ${r[colorBy]} ${p.unit} ${bad ? "(exceeds limit)" : "(within limit)"}`;
@@ -40,7 +45,7 @@ export default function WaterMap({ stations, selectedId, colorBy, onSelect }: Pr
             key={s.id}
             center={[s.lat, s.lng]}
             radius={sel ? 14 : 10}
-            pathOptions={{ color: sel ? "#0b2533" : "#ffffff", weight: sel ? 3 : 2, fillColor: color, fillOpacity: 0.9 }}
+            pathOptions={{ color: resolve(sel ? "var(--foreground)" : "var(--card)"), weight: sel ? 3 : 2, fillColor: color, fillOpacity: 0.9 }}
             eventHandlers={{ click: () => onSelect(s.id) }}
           >
             <Tooltip direction="top">
@@ -53,4 +58,21 @@ export default function WaterMap({ stations, selectedId, colorBy, onSelect }: Pr
       })}
     </MapContainer>
   );
+}
+
+function MapControls({ stations, selectedId }: { stations: Station[]; selectedId: string }) {
+  const map = useMap();
+  useEffect(() => {
+    const station = stations.find((s) => s.id === selectedId);
+    if (station && !map.getBounds().contains([station.lat, station.lng])) map.panTo([station.lat, station.lng]);
+  }, [map, stations, selectedId]);
+  useEffect(() => {
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize();
+      map.fitBounds(stations.map((s) => [s.lat, s.lng] as [number, number]), { padding: [32, 32], animate: false });
+    });
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map, stations]);
+  return <div className="map-fit-control"><Button variant="outline" size="icon" aria-label="Show all stations" title="Show all stations" onClick={(event) => { event.stopPropagation(); map.fitBounds(stations.map((s) => [s.lat, s.lng] as [number, number]), { padding: [32, 32] }); }}><LocateFixed /></Button></div>;
 }
