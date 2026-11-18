@@ -15,7 +15,7 @@ function resolve(v: string) {
 
 export default function WaterMap({ stations, selectedId, colorBy, onSelect }: Props) {
   return (
-    <MapContainer center={[22.565, 88.34]} zoom={11} className="h-full w-full" scrollWheelZoom>
+    <MapContainer bounds={stations.map((s) => [s.lat, s.lng] as [number, number])} boundsOptions={{ padding: [24, 24] }} className="h-full w-full" scrollWheelZoom>
       <TileLayer
         attribution="© OpenStreetMap contributors"
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
