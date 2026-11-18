@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { computeWQI, gradeWQI, exceeds, PARAMS } from "./water";
+import { computeWQI, gradeWQI, exceeds, PARAMS, STATIONS } from "./water";
 
 describe("water quality index", () => {
+  it("bases every sample station in the Chennai region", () => {
+    expect(STATIONS).toHaveLength(8);
+    for (const station of STATIONS) {
+      expect(station.lat).toBeGreaterThanOrEqual(12.9);
+      expect(station.lat).toBeLessThanOrEqual(13.3);
+      expect(station.lng).toBeGreaterThanOrEqual(80.1);
+      expect(station.lng).toBeLessThanOrEqual(80.35);
+    }
+    expect(STATIONS[0]?.name).toBe("Adyar River – Kotturpuram");
+  });
   it("ideal water scores near zero (Excellent)", () => {
     const w = computeWQI({ ph: 7, do: 14.6, bod: 0, tds: 0, turbidity: 0, nitrate: 0 });
     expect(w).toBe(0);

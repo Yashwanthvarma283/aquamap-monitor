@@ -85,22 +85,23 @@ function series(base: Reading, drift: Partial<Reading>): Station["history"] {
   });
 }
 
-// SAMPLE DATA – illustrative values for demonstration, not field measurements.
+// SAMPLE DATA – illustrative readings and approximate Chennai sampling locations,
+// not field measurements or surveyed sampling points.
 export const STATIONS: Station[] = [
-  { id: "S1", name: "Hooghly – Dakshineswar Ghat", type: "River", lat: 22.6547, lng: 88.3577,
+  { id: "S1", name: "Adyar River – Kotturpuram", type: "River", lat: 13.0180, lng: 80.2410,
     history: series({ ph: 7.6, do: 5.8, bod: 3.4, tds: 310, turbidity: 18, nitrate: 6 }, { bod: 0.15, do: -0.1 }) },
-  { id: "S2", name: "Hooghly – Babughat", type: "River", lat: 22.5686, lng: 88.3416,
+  { id: "S2", name: "Cooum River – Napier Bridge", type: "River", lat: 13.0690, lng: 80.2830,
     history: series({ ph: 7.8, do: 5.1, bod: 4.2, tds: 360, turbidity: 24, nitrate: 9 }, { bod: 0.2, turbidity: 1.2 }) },
-  { id: "S3", name: "Rabindra Sarobar Lake", type: "Lake", lat: 22.5124, lng: 88.3637,
+  { id: "S3", name: "Porur Lake", type: "Lake", lat: 13.0350, lng: 80.1510,
     history: series({ ph: 8.1, do: 6.4, bod: 2.6, tds: 280, turbidity: 6, nitrate: 4 }, { do: -0.15, ph: 0.04 }) },
-  { id: "S4", name: "Subhas Sarobar", type: "Lake", lat: 22.5745, lng: 88.4006,
+  { id: "S4", name: "Velachery Lake", type: "Lake", lat: 12.9770, lng: 80.2140,
     history: series({ ph: 7.9, do: 6.9, bod: 2.1, tds: 240, turbidity: 4, nitrate: 3 }, { bod: 0.05 }) },
-  { id: "S5", name: "East Kolkata Wetlands", type: "Pond", lat: 22.5521, lng: 88.4512,
+  { id: "S5", name: "Mylapore Temple Tank", type: "Pond", lat: 13.0330, lng: 80.2690,
     history: series({ ph: 8.3, do: 4.2, bod: 7.8, tds: 620, turbidity: 30, nitrate: 22 }, { bod: 0.3, nitrate: 1.5 }) },
-  { id: "S6", name: "Salt Lake Tube-well", type: "Groundwater", lat: 22.5867, lng: 88.4171,
+  { id: "S6", name: "Anna Nagar – Sample Borewell", type: "Groundwater", lat: 13.0850, lng: 80.2100,
     history: series({ ph: 7.2, do: 6.8, bod: 0.8, tds: 520, turbidity: 1.2, nitrate: 12 }, { tds: 8 }) },
-  { id: "S7", name: "Hooghly – Budge Budge", type: "River", lat: 22.4808, lng: 88.1719,
+  { id: "S7", name: "Kosasthalaiyar River – Ennore", type: "River", lat: 13.2240, lng: 80.3130,
     history: series({ ph: 7.7, do: 5.5, bod: 3.8, tds: 340, turbidity: 21, nitrate: 7 }, { turbidity: 0.8 }) },
-  { id: "S8", name: "Santragachi Jheel", type: "Lake", lat: 22.5843, lng: 88.2831,
+  { id: "S8", name: "Puzhal Lake", type: "Lake", lat: 13.1660, lng: 80.1700,
     history: series({ ph: 8.4, do: 4.6, bod: 5.4, tds: 410, turbidity: 12, nitrate: 15 }, { do: -0.12, bod: 0.2 }) },
 ];

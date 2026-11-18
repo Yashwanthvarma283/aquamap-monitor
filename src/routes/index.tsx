@@ -12,10 +12,10 @@ import { STATIONS, PARAMS, computeWQI, gradeWQI, latest, exceeds, type ParamKey,
 const WaterMap = lazy(() => import("@/components/WaterMap"));
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
-    { title: "AquaMap | Kolkata Water Quality Observatory" },
-    { name: "description", content: "Explore Kolkata sampling stations, compare water quality readings, inspect monthly trends and calculate the Weighted Arithmetic Water Quality Index." },
-    { property: "og:title", content: "AquaMap | Kolkata Water Quality Observatory" },
-    { property: "og:description", content: "An interactive water quality observatory for Kolkata's rivers, lakes, wetlands and groundwater." },
+    { title: "AquaMap | Chennai Water Quality Observatory" },
+    { name: "description", content: "Explore Chennai sampling stations, compare water quality readings, inspect monthly trends and calculate the Weighted Arithmetic Water Quality Index." },
+    { property: "og:title", content: "AquaMap | Chennai Water Quality Observatory" },
+    { property: "og:description", content: "An interactive water quality observatory for Chennai's rivers, lakes, ponds and groundwater." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary_large_image" },
   ] }),
@@ -55,14 +55,14 @@ function Index() {
       </div>
     </header>
     <main className="page-container pb-10">
-      <div className="page-intro"><div><div className="eyebrow"><span className="status-dot" />KOLKATA · WEST BENGAL</div><h1>Water quality, in perspective.</h1><p className="mt-2 text-sm text-muted-foreground">GIS-based mapping &amp; monitoring of Kolkata’s water bodies</p></div><div className="sample-stamp"><FlaskConical className="size-4" /><span>Capstone study<span className="block text-xs text-muted-foreground">June – November · Sample dataset</span></span></div></div>
+      <div className="page-intro"><div><div className="eyebrow"><span className="status-dot" />CHENNAI · TAMIL NADU</div><h1>Water quality, in perspective.</h1><p className="mt-2 text-sm text-muted-foreground">GIS-based mapping &amp; monitoring of Chennai’s water bodies</p></div><div className="sample-stamp"><FlaskConical className="size-4" /><span>Capstone study<span className="block text-xs text-muted-foreground">June – November · Sample dataset</span></span></div></div>
       <div className="stats-strip">
         {[{ icon: MapPin, label: "Sampling stations", value: STATIONS.length, note: "Across 4 water body types", tone: "primary" }, { icon: Activity, label: "Average WQI", value: stats.avg, note: "Weighted arithmetic index", tone: "primary" }, { icon: AlertTriangle, label: "Parameter breaches", value: stats.alerts, note: "Across all latest samples", tone: "warning" }, { icon: FlaskConical, label: "Sites with WQI > 75", value: stats.unsafe, note: "Very poor or unsuitable", tone: "danger" }].map((item) => <div className="stat-item" key={item.label}><div className="flex items-center justify-between gap-3"><span className="text-xs font-medium text-muted-foreground">{item.label}</span><item.icon className={`stat-icon ${item.tone}`} /></div><div className="stat-value">{item.value}</div><div className="text-xs text-muted-foreground">{item.note}</div></div>)}
       </div>
-      <div className="sample-notice"><FlaskConical className="size-4 shrink-0" /><span>Illustrative sample readings — not field measurements or a drinking-water safety assessment.</span></div>
+      <div className="sample-notice"><FlaskConical className="size-4 shrink-0" /><span>Illustrative readings & approximate Chennai locations — not field measurements or a drinking-water safety assessment.</span></div>
       <section id="observatory" className="observatory-section">
         <div className="map-panel">
-          <div className="section-heading"><div><h2><MapPin />Station map</h2><p className="section-subtitle">Kolkata &amp; surrounding water bodies</p></div><Select value={colorBy} onValueChange={(v) => setColorBy(v as typeof colorBy)}><SelectTrigger aria-label="Map colour parameter" className="w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="wqi">Water quality index</SelectItem>{PARAMS.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent></Select></div>
+          <div className="section-heading"><div><h2><MapPin />Station map</h2><p className="section-subtitle">Chennai &amp; surrounding water bodies</p></div><Select value={colorBy} onValueChange={(v) => setColorBy(v as typeof colorBy)}><SelectTrigger aria-label="Map colour parameter" className="w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="wqi">Water quality index</SelectItem>{PARAMS.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent></Select></div>
           <div className="map-canvas"><ClientOnly fallback={<div className="map-loading"><Waves className="size-8 animate-pulse" /><span>Loading station map…</span></div>}><Suspense fallback={<div className="map-loading"><Waves className="size-8 animate-pulse" /><span>Loading station map…</span></div>}><WaterMap stations={STATIONS} selectedId={selectedId} colorBy={colorBy} onSelect={setSelectedId} /></Suspense></ClientOnly></div>
           <div className="map-legend">{colorBy === "wqi" ? GRADES.map((g) => <span key={g} className={`legend-item ${GRADE_CLASS[g]}`}><span className="quality-dot" />{g}</span>) : <><span className="legend-item quality-excellent"><span className="quality-dot" />Within limit</span><span className="legend-item quality-unsuitable"><span className="quality-dot" />Exceeds limit</span></>}<span className="ml-auto text-xs text-muted-foreground">{STATIONS.length} stations</span></div>
         </div>
