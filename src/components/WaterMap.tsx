@@ -1,78 +1,151 @@
 import { useEffect } from "react";
-import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from "react-leaflet";
-import { LocateFixed } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
+import { divIcon } from "leaflet";
+import { LocateFixed, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type Station, type ParamKey, PARAMS, computeWQI, gradeWQI, GRADE_VAR, latest, exceeds } from "@/lib/water";
-
+import {
+  type Station,
+  type ParamKey,
+  PARAMS,
+  computeWQI,
+  gradeWQI,
+  latest,
+  exceeds,
+} from "@/lib/water";
+import { GRADE_CLASS } from "@/components/GradeBadge";
 interface Props {
   stations: Station[];
   selectedId: string;
   colorBy: "wqi" | ParamKey;
   onSelect: (id: string) => void;
+  layer?: "streets" | "satellite";
 }
-
-function resolve(v: string) {
-  const name = v.slice(4, -1);
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "gray";
-}
-
-export default function WaterMap({ stations, selectedId, colorBy, onSelect }: Props) {
+export default function WaterMap({
+  stations,
+  selectedId,
+  colorBy,
+  onSelect,
+  layer = "streets",
+}: Props) {
   return (
-    <MapContainer bounds={stations.map((s) => [s.lat, s.lng] as [number, number])} boundsOptions={{ padding: [32, 32] }} className="h-full w-full" scrollWheelZoom={false}>
+    <MapContainer
+      center={[13.07, 80.22]}
+      zoom={11}
+      zoomControl={false}
+      className="h-full w-full"
+      scrollWheelZoom={true}
+    >
       <MapControls stations={stations} selectedId={selectedId} />
-      <TileLayer
-        attribution="© OpenStreetMap contributors"
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      {layer === "streets" ? (
+        <TileLayer
+          key="streets"
+          attribution="© OpenStreetMap contributors"
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+      ) : (
+        <TileLayer
+          key="satellite"
+          attribution="Tiles © Esri"
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        />
+      )}
       {stations.map((s) => {
-        const r = latest(s);
-        const wqi = computeWQI(r);
-        let color: string;
-        let label: string;
-        if (colorBy === "wqi") {
-          color = resolve(GRADE_VAR[gradeWQI(wqi)]);
-          label = `WQI ${wqi} · ${gradeWQI(wqi)}`;
-        } else {
-          const p = PARAMS.find((x) => x.key === colorBy);
-          if (!p) return null;
-          const bad = exceeds(p, r[colorBy]);
-          color = resolve(bad ? "var(--wq-unsuitable)" : "var(--wq-excellent)");
-          label = `${p.label}: ${r[colorBy]} ${p.unit} ${bad ? "(exceeds limit)" : "(within limit)"}`;
-        }
-        const sel = s.id === selectedId;
+        const r = latest(s),
+          wqi = computeWQI(r),
+          sel = s.id === selectedId;
+        const param = PARAMS.find((p) => p.key === colorBy);
+        const gradeClass =
+          colorBy === "wqi"
+            ? GRADE_CLASS[gradeWQI(wqi)]
+            : param && exceeds(param, r[param.key])
+              ? "quality-unsuitable"
+              : "quality-excellent";
+        const value = colorBy === "wqi" ? Math.round(wqi) : param ? r[param.key] : wqi;
+        const icon = divIcon({
+          className: "station-marker-wrapper",
+          html: `<div class="station-pin ${gradeClass} ${sel ? "is-selected" : ""}"><span class="pin-dot"></span><strong>${value}</strong></div>`,
+          iconSize: [58, 34],
+          iconAnchor: [29, 40],
+        });
         return (
-          <CircleMarker
+          <Marker
             key={s.id}
-            center={[s.lat, s.lng]}
-            radius={sel ? 14 : 10}
-            pathOptions={{ color: resolve(sel ? "var(--foreground)" : "var(--card)"), weight: sel ? 3 : 2, fillColor: color, fillOpacity: 0.9 }}
+            position={[s.lat, s.lng]}
+            icon={icon}
+            zIndexOffset={sel ? 1000 : 0}
             eventHandlers={{ click: () => onSelect(s.id) }}
+            title={`${s.id} · ${s.name}`}
           >
-            <Tooltip direction="top">
+            <Tooltip direction="top" offset={[0, -35]}>
               <strong>{s.name}</strong>
               <br />
-              {label}
+              {colorBy === "wqi"
+                ? `WQI ${wqi} · ${gradeWQI(wqi)}`
+                : `${param?.label}: ${value} ${param?.unit ?? ""}`}
             </Tooltip>
-          </CircleMarker>
+          </Marker>
         );
       })}
     </MapContainer>
   );
 }
-
 function MapControls({ stations, selectedId }: { stations: Station[]; selectedId: string }) {
   const map = useMap();
+  const fit = () => {
+    if (stations.length)
+      map.fitBounds(
+        stations.map((s) => [s.lat, s.lng] as [number, number]),
+        { paddingTopLeft: [55, 85], paddingBottomRight: [55, 70], maxZoom: 13 },
+      );
+  };
   useEffect(() => {
-    const station = stations.find((s) => s.id === selectedId);
-    if (station && !map.getBounds().contains([station.lat, station.lng])) map.panTo([station.lat, station.lng]);
-  }, [map, stations, selectedId]);
+    if (stations.length)
+      map.fitBounds(
+        stations.map((s) => [s.lat, s.lng] as [number, number]),
+        { padding: [55, 85], maxZoom: 13, animate: false },
+      );
+  }, [map, stations]);
   useEffect(() => {
-    const observer = new ResizeObserver(() => {
-      map.invalidateSize();
-      map.fitBounds(stations.map((s) => [s.lat, s.lng] as [number, number]), { padding: [32, 32], animate: false });
-    });
+    const s = stations.find((s) => s.id === selectedId);
+    if (s)
+      map.panTo([s.lat, s.lng], {
+        animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      });
+  }, [map, selectedId, stations]);
+  useEffect(() => {
+    const observer = new ResizeObserver(() => map.invalidateSize());
     observer.observe(map.getContainer());
     return () => observer.disconnect();
-  }, [map, stations]);
-  return <div className="map-fit-control"><Button variant="outline" size="icon" aria-label="Show all stations" title="Show all stations" onClick={(event) => { event.stopPropagation(); map.fitBounds(stations.map((s) => [s.lat, s.lng] as [number, number]), { padding: [32, 32] }); }}><LocateFixed /></Button></div>;
+  }, [map]);
+  return (
+    <div className="map-navigation">
+      <Button
+        variant="outline"
+        size="icon"
+        aria-label="Zoom in"
+        title="Zoom in"
+        onClick={() => map.zoomIn()}
+      >
+        <Plus />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        aria-label="Zoom out"
+        title="Zoom out"
+        onClick={() => map.zoomOut()}
+      >
+        <Minus />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        aria-label="Show all stations"
+        title="Show all stations"
+        onClick={fit}
+      >
+        <LocateFixed />
+      </Button>
+    </div>
+  );
 }

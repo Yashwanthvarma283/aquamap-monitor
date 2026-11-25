@@ -31,3 +31,5 @@ use the editor.
 
 - Keep water-quality calculations in the shared model and presentation in focused dashboard components so interface changes do not alter the scientific method.
 - Import the Leaflet map lazily behind ClientOnly because its browser dependencies cannot run during server rendering.
+- Use the root application shell and separate file routes for map, station directory and analytics tabs to avoid duplicated dashboards.
+- Derive analytics from the shared sample model in a browser-safe analytics module; do not imply illustrative data are live field measurements.

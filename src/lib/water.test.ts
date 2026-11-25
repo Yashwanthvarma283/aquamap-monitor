@@ -3,7 +3,7 @@ import { computeWQI, gradeWQI, exceeds, PARAMS, STATIONS } from "./water";
 
 describe("water quality index", () => {
   it("bases every sample station in the Chennai region", () => {
-    expect(STATIONS).toHaveLength(8);
+    expect(STATIONS).toHaveLength(16);
     for (const station of STATIONS) {
       expect(station.lat).toBeGreaterThanOrEqual(12.9);
       expect(station.lat).toBeLessThanOrEqual(13.3);
@@ -26,7 +26,11 @@ describe("water quality index", () => {
     expect(gradeWQI(101)).toBe("Unsuitable");
   });
   it("DO below 5 mg/L and pH outside 6.5–8.5 are flagged", () => {
-    const p = (k: string) => PARAMS.find((x) => x.key === k)!;
+    const p = (k: string) => {
+      const param = PARAMS.find((x) => x.key === k);
+      if (!param) throw new Error(`Missing parameter ${k}`);
+      return param;
+    };
     expect(exceeds(p("do"), 4.9)).toBe(true);
     expect(exceeds(p("ph"), 6.4)).toBe(true);
     expect(exceeds(p("ph"), 7.5)).toBe(false);

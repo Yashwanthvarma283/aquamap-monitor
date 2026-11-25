@@ -10,33 +10,122 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as CalculatorRouteImport } from './routes/calculator'
+import { Route as StationsRouteImport } from './routes/stations'
+import { Route as AnalyticsIndexRouteImport } from './routes/analytics.index'
+import { Route as AnalyticsBreachesRouteImport } from './routes/analytics.breaches'
+import { Route as AnalyticsComparisonRouteImport } from './routes/analytics.comparison'
+import { Route as AnalyticsTrendsRouteImport } from './routes/analytics.trends'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalculatorRoute = CalculatorRouteImport.update({
+  id: '/calculator',
+  path: '/calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StationsRoute = StationsRouteImport.update({
+  id: '/stations',
+  path: '/stations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsIndexRoute = AnalyticsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AnalyticsRoute,
+} as any)
+const AnalyticsBreachesRoute = AnalyticsBreachesRouteImport.update({
+  id: '/breaches',
+  path: '/breaches',
+  getParentRoute: () => AnalyticsRoute,
+} as any)
+const AnalyticsComparisonRoute = AnalyticsComparisonRouteImport.update({
+  id: '/comparison',
+  path: '/comparison',
+  getParentRoute: () => AnalyticsRoute,
+} as any)
+const AnalyticsTrendsRoute = AnalyticsTrendsRouteImport.update({
+  id: '/trends',
+  path: '/trends',
+  getParentRoute: () => AnalyticsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRouteWithChildren
+  '/calculator': typeof CalculatorRoute
+  '/stations': typeof StationsRoute
+  '/analytics/breaches': typeof AnalyticsBreachesRoute
+  '/analytics/comparison': typeof AnalyticsComparisonRoute
+  '/analytics/trends': typeof AnalyticsTrendsRoute
+  '/analytics/': typeof AnalyticsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calculator': typeof CalculatorRoute
+  '/stations': typeof StationsRoute
+  '/analytics/breaches': typeof AnalyticsBreachesRoute
+  '/analytics/comparison': typeof AnalyticsComparisonRoute
+  '/analytics/trends': typeof AnalyticsTrendsRoute
+  '/analytics': typeof AnalyticsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRouteWithChildren
+  '/calculator': typeof CalculatorRoute
+  '/stations': typeof StationsRoute
+  '/analytics/breaches': typeof AnalyticsBreachesRoute
+  '/analytics/comparison': typeof AnalyticsComparisonRoute
+  '/analytics/trends': typeof AnalyticsTrendsRoute
+  '/analytics/': typeof AnalyticsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/analytics'
+    | '/calculator'
+    | '/stations'
+    | '/analytics/breaches'
+    | '/analytics/comparison'
+    | '/analytics/trends'
+    | '/analytics/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/calculator'
+    | '/stations'
+    | '/analytics/breaches'
+    | '/analytics/comparison'
+    | '/analytics/trends'
+    | '/analytics'
+  id:
+    | '__root__'
+    | '/'
+    | '/analytics'
+    | '/calculator'
+    | '/stations'
+    | '/analytics/breaches'
+    | '/analytics/comparison'
+    | '/analytics/trends'
+    | '/analytics/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRouteWithChildren
+  CalculatorRoute: typeof CalculatorRoute
+  StationsRoute: typeof StationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +137,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calculator': {
+      id: '/calculator'
+      path: '/calculator'
+      fullPath: '/calculator'
+      preLoaderRoute: typeof CalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stations': {
+      id: '/stations'
+      path: '/stations'
+      fullPath: '/stations'
+      preLoaderRoute: typeof StationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics/': {
+      id: '/analytics/'
+      path: '/'
+      fullPath: '/analytics/'
+      preLoaderRoute: typeof AnalyticsIndexRouteImport
+      parentRoute: typeof AnalyticsRoute
+    }
+    '/analytics/breaches': {
+      id: '/analytics/breaches'
+      path: '/breaches'
+      fullPath: '/analytics/breaches'
+      preLoaderRoute: typeof AnalyticsBreachesRouteImport
+      parentRoute: typeof AnalyticsRoute
+    }
+    '/analytics/comparison': {
+      id: '/analytics/comparison'
+      path: '/comparison'
+      fullPath: '/analytics/comparison'
+      preLoaderRoute: typeof AnalyticsComparisonRouteImport
+      parentRoute: typeof AnalyticsRoute
+    }
+    '/analytics/trends': {
+      id: '/analytics/trends'
+      path: '/trends'
+      fullPath: '/analytics/trends'
+      preLoaderRoute: typeof AnalyticsTrendsRouteImport
+      parentRoute: typeof AnalyticsRoute
+    }
   }
 }
 
+interface AnalyticsRouteChildren {
+  AnalyticsBreachesRoute: typeof AnalyticsBreachesRoute
+  AnalyticsComparisonRoute: typeof AnalyticsComparisonRoute
+  AnalyticsTrendsRoute: typeof AnalyticsTrendsRoute
+  AnalyticsIndexRoute: typeof AnalyticsIndexRoute
+}
+
+const AnalyticsRouteChildren: AnalyticsRouteChildren = {
+  AnalyticsBreachesRoute: AnalyticsBreachesRoute,
+  AnalyticsComparisonRoute: AnalyticsComparisonRoute,
+  AnalyticsTrendsRoute: AnalyticsTrendsRoute,
+  AnalyticsIndexRoute: AnalyticsIndexRoute,
+}
+
+const AnalyticsRouteWithChildren = AnalyticsRoute._addFileChildren(
+  AnalyticsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRouteWithChildren,
+  CalculatorRoute: CalculatorRoute,
+  StationsRoute: StationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
