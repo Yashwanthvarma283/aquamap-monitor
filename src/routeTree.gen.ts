@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as CalculatorRouteImport } from './routes/calculator'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StationsRouteImport } from './routes/stations'
 import { Route as AnalyticsIndexRouteImport } from './routes/analytics.index'
 import { Route as AnalyticsBreachesRouteImport } from './routes/analytics.breaches'
@@ -31,6 +32,11 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
 const CalculatorRoute = CalculatorRouteImport.update({
   id: '/calculator',
   path: '/calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StationsRoute = StationsRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRouteWithChildren
   '/calculator': typeof CalculatorRoute
+  '/settings': typeof SettingsRoute
   '/stations': typeof StationsRoute
   '/analytics/breaches': typeof AnalyticsBreachesRoute
   '/analytics/comparison': typeof AnalyticsComparisonRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/calculator': typeof CalculatorRoute
+  '/settings': typeof SettingsRoute
   '/stations': typeof StationsRoute
   '/analytics/breaches': typeof AnalyticsBreachesRoute
   '/analytics/comparison': typeof AnalyticsComparisonRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRouteWithChildren
   '/calculator': typeof CalculatorRoute
+  '/settings': typeof SettingsRoute
   '/stations': typeof StationsRoute
   '/analytics/breaches': typeof AnalyticsBreachesRoute
   '/analytics/comparison': typeof AnalyticsComparisonRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/calculator'
+    | '/settings'
     | '/stations'
     | '/analytics/breaches'
     | '/analytics/comparison'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/calculator'
+    | '/settings'
     | '/stations'
     | '/analytics/breaches'
     | '/analytics/comparison'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/calculator'
+    | '/settings'
     | '/stations'
     | '/analytics/breaches'
     | '/analytics/comparison'
@@ -125,6 +137,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRouteWithChildren
   CalculatorRoute: typeof CalculatorRoute
+  SettingsRoute: typeof SettingsRoute
   StationsRoute: typeof StationsRoute
 }
 
@@ -149,6 +162,13 @@ declare module '@tanstack/react-router' {
       path: '/calculator'
       fullPath: '/calculator'
       preLoaderRoute: typeof CalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stations': {
@@ -211,6 +231,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRouteWithChildren,
   CalculatorRoute: CalculatorRoute,
+  SettingsRoute: SettingsRoute,
   StationsRoute: StationsRoute,
 }
 export const routeTree = rootRouteImport

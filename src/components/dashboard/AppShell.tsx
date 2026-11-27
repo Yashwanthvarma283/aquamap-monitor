@@ -7,6 +7,7 @@ import {
   FlaskConical,
   ArrowUpRight,
   MapPin,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
@@ -15,6 +16,7 @@ const links = [
   { to: "/stations", label: "Stations", icon: Layers3 },
   { to: "/analytics", label: "Analytics", icon: ChartNoAxesCombined },
   { to: "/calculator", label: "Sample lab", icon: FlaskConical },
+  { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
